@@ -4,21 +4,8 @@
  */
 import "dotenv/config";
 
-import express from "express";
 import { prisma } from "./lib/prisma";
-
-/**
- * Express application
- * This is the main Express application
- * It is used to create the server and listen for requests
- * It is also used to handle the routes
- * It is also used to handle the middleware
- * It is also used to handle the error handling
- * It is also used to handle the logging
- * It is also used to handle the database connection
- * It is also used to handle the database disconnection
- */
-const app = express();
+import { app } from "./app";
 
 /**
  * Port number
@@ -31,67 +18,6 @@ const app = express();
  */
 const rawPort = Number(process.env.PORT) || 3000;
 const port = Number.isFinite(rawPort) && rawPort > 0 ? rawPort : 3000;
-
-/**
- * Disable the X-Powered-By header
- * This is a security measure to prevent the server from being identified as an Express server
- */
-app.disable("x-powered-by");
-
-/**
- * Parse the request body as JSON
- * This is a middleware that parses the request body as JSON
- */
-app.use(express.json());
-
-/**
- * Root route
- * This is the root route of the server
- * If the request is successful, it will return a JSON response with the message "Server is running"
- * This is a simple test route to check if the server is running
- * _req: request object (unused) _req is a placeholder for the request object
- * it is because we are not using the request object in this route
- * it means we are not using the request object in this route purposefully
- */
-app.get("/", (_req, res) => {
-  res.json({
-    message: "Server is running",
-  });
-});
-
-/**
- * Health check route
- * This is the health check route of the server
- * It is used to check if the server is healthy
- * It is also used to check if the database is connected
- * It is also used to check if the server is running
- * It is also used to check if the database is connected
- * Reason:
- * It is a very light query
- * It does not request data
- * It only tests the database connection
- * Why 200?
- * Because everything is good and the database is connected.
- * Why 503?
- * Because the service is up but the dependent database is not accessible.
- * So the system is not fully healthy and the database is not connected.
- * */
-
-app.get("/health", async (_req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({
-      ok: true,
-      database: "connected",
-    });
-  } catch (error) {
-    console.error("Health check failed", error);
-    res.status(503).json({
-      ok: false,
-      database: "disconnected",
-    });
-  }
-});
 
 async function startServer() {
   /**
@@ -168,3 +94,11 @@ void startServer().catch(async (error) => {
   await prisma.$disconnect();
   process.exit(1);
 });
+
+/**
+ * Entry point of the application
+ * This file is responsible for:
+ * - loading environment variables
+ * - connecting to the database
+ * - starting the HTTP server
+ */
