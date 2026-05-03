@@ -4,6 +4,30 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql "
+    provider = "postgresql"
     url = env("DATABASE_URL)
+}
+
+model User {
+  /// Primary key (auto-incremented)
+  id Int @id @default(autoincrement())
+
+  /// Unique email to prevent duplicate users
+  email String @unique
+
+
+  name String
+  surname String
+
+  /// Optional avatar image URL
+  avatarUrl String?
+
+  /// Global system role (not group-specific)
+  systemRole String @default("USER")
+
+  /// Record creation timestamp
+  createdAt DateTime @default(now())
+
+  /// Automatically updated on record change
+  updatedAt DateTime @updatedAt
 }
