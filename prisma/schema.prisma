@@ -1,11 +1,10 @@
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url = env("DATABASE_URL)
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -15,8 +14,7 @@ model User {
   /// Unique email to prevent duplicate users
   email String @unique
 
-
-  name String
+  name    String
   surname String
 
   /// Optional avatar image URL
@@ -25,9 +23,142 @@ model User {
   /// Global system role (not group-specific)
   systemRole String @default("USER")
 
+  /// Groups that the user is a member of
+  memberships GroupMember[]
+
+  /// Tasks assigned to this user
+taskAssignments TaskAssignee[]
+
   /// Record creation timestamp
   createdAt DateTime @default(now())
 
   /// Automatically updated on record change
   updatedAt DateTime @updatedAt
 }
+
+model StudyGroup {
+  /// Primary key
+  id Int @id @default(autoincrement())
+
+  /// Group name
+  name String
+
+  /// Optional description
+  description String?
+
+  /// Optional avatar image
+  avatarUrl String?
+
+  /// Relation to GroupMember (users in this group) this is junction table
+  members GroupMember[]
+
+  /// Tasks that belong to this study group
+tasks Task[]
+
+  /// Record creation timestamp
+  createdAt DateTime @default(now())
+
+  /// Automatically updated on change
+  updatedAt DateTime @updatedAt
+}
+
+model GroupMember {
+  /// Foreign key to User
+  userId Int
+
+  /// Foreign key to StudyGroup
+  studyGroupId Int
+
+  /// Role within the group
+role GroupRole @default(MEMBER)
+
+  /// When the user joined the group
+  joinedAt DateTime @default(now())
+
+  /// Relation to User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Relation to StudyGroup 
+  studyGroup StudyGroup @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+
+  /// Prevent duplicate membership (same user cannot join same group twice)
+  @@unique([userId, studyGroupId])
+  /// Indexes for performance
+  @@index([userId])
+  @@index([studyGroupId])
+}
+
+/// Role of a user within a study group
+enum GroupRole {
+  ADMIN
+  MEMBER
+}
+
+
+model Task {
+    /// Primary key (auto-incremented)
+  id Int @id @default(autoincrement())
+
+  title String
+  description String?
+  dueDate DateTime?
+
+    /// If null, this task can be treated as a personal task
+  studyGroupId Int?
+
+  /// Relation to StudyGroup
+  studyGroup StudyGroup? @relation(fields: [studyGroupId], references:[id],onDelete:Cascade)
+
+  assignees TaskAssignee[]
+    /// Record creation timestamp
+  createdAt DateTime @default(now())
+
+  /// Automatically updated on record change
+  updatedAt DateTime @updatedAt
+
+  @@index([studyGroupId])
+}
+
+model TaskAssignee {
+   /// Foreign key to User
+  userId Int
+
+    /// Foreign key to Task
+  taskId Int
+
+    /// When the task was assigned
+  assignedAt DateTime @default(now())
+
+    /// Relation to User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    /// Relation to Task
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  /// Prevent assigning the same task to the same user more than once
+  @@unique([taskId, userId])
+  /// Indexes for performance
+  @@index([taskId])
+  @@index([userId])
+}
+
+/// Notes : cannot define another model in current model
+/// If a relationship contains additional fields (e.g. role, joinedAt),
+/// do NOT create a direct relation between the models.
+/// Instead, use a junction (intermediate) table.
+///
+/// Example:
+/// User ↔ StudyGroup (N-N) → use GroupMember
+///
+/// This allows storing extra data about the relationship itself,
+/// such as the user's role within a specific group.
+
+/// CASCADE DELETE EXPLANATION:
+/// If the related parent record (User or StudyGroup) is deleted,
+/// all associated GroupMember records will be automatically removed.
+/// 
+/// This prevents orphan records and keeps data integrity consistent.
+/// 
+/// Example:
+/// - If a User is deleted → their group memberships are also deleted
+/// - If a StudyGroup is deleted → all its members are also removed
