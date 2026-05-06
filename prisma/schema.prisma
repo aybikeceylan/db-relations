@@ -1,10 +1,15 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+enum SystemRole {
+  USER
+  ADMIN
 }
 
 model User {
@@ -21,13 +26,16 @@ model User {
   avatarUrl String?
 
   /// Global system role (not group-specific)
-  systemRole String @default("USER")
+  systemRole SystemRole @default(USER)
 
   /// Groups that the user is a member of
   memberships GroupMember[]
 
+  /// Comments written by this user
+  comments Comment[]
+
   /// Tasks assigned to this user
-taskAssignments TaskAssignee[]
+  taskAssignments TaskAssignee[]
 
   /// Record creation timestamp
   createdAt DateTime @default(now())
@@ -53,7 +61,7 @@ model StudyGroup {
   members GroupMember[]
 
   /// Tasks that belong to this study group
-tasks Task[]
+  tasks Task[]
 
   /// Record creation timestamp
   createdAt DateTime @default(now())
@@ -70,7 +78,7 @@ model GroupMember {
   studyGroupId Int
 
   /// Role within the group
-role GroupRole @default(MEMBER)
+  role GroupRole @default(MEMBER)
 
   /// When the user joined the group
   joinedAt DateTime @default(now())
@@ -94,24 +102,26 @@ enum GroupRole {
   MEMBER
 }
 
-
 model Task {
-    /// Primary key (auto-incremented)
+  /// Primary key (auto-incremented)
   id Int @id @default(autoincrement())
 
-  title String
+  title       String
   description String?
-  dueDate DateTime?
+  dueDate     DateTime?
 
-    /// If null, this task can be treated as a personal task
+  /// If null, this task can be treated as a personal task
   studyGroupId Int?
 
   /// Relation to StudyGroup
-  studyGroup StudyGroup? @relation(fields: [studyGroupId], references:[id],onDelete:Cascade)
+  studyGroup StudyGroup? @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
 
   assignees TaskAssignee[]
-    /// Record creation timestamp
-  createdAt DateTime @default(now())
+
+  /// Comments on this task
+  comments  Comment[]
+  /// Record creation timestamp
+  createdAt DateTime  @default(now())
 
   /// Automatically updated on record change
   updatedAt DateTime @updatedAt
@@ -120,19 +130,19 @@ model Task {
 }
 
 model TaskAssignee {
-   /// Foreign key to User
+  /// Foreign key to User
   userId Int
 
-    /// Foreign key to Task
+  /// Foreign key to Task
   taskId Int
 
-    /// When the task was assigned
+  /// When the task was assigned
   assignedAt DateTime @default(now())
 
-    /// Relation to User
+  /// Relation to User
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    /// Relation to Task
+  /// Relation to Task
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   /// Prevent assigning the same task to the same user more than once
@@ -140,6 +150,42 @@ model TaskAssignee {
   /// Indexes for performance
   @@index([taskId])
   @@index([userId])
+}
+
+model Comment {
+  id     Int @id @default(autoincrement())
+  /// Foreign key to Task
+  taskId Int
+  /// Foreign key to User
+  userId Int
+
+  /// Optional parent comment id for replies
+  parentId Int?
+
+  /// Comment content
+  content String
+
+  /// Relation to Task
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  /// Relation to User
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Parent comment relation
+  parent Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+
+  /// Replies of this comment
+  replies Comment[] @relation("CommentReplies")
+
+  /// Record creation timestamp
+  createdAt DateTime @default(now())
+
+  /// Automatically updated on record change
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([parentId])
 }
 
 /// Notes : cannot define another model in current model
@@ -162,3 +208,26 @@ model TaskAssignee {
 /// Example:
 /// - If a User is deleted → their group memberships are also deleted
 /// - If a StudyGroup is deleted → all its members are also removed
+
+/// SELF RELATION EXPLANATION:
+/// A self relation is when a model references itself.
+///
+/// In this case:
+/// - A Comment can have a parent Comment
+/// - A Comment can have many replies
+///
+/// This is used to represent hierarchical or nested data structures,
+/// such as comment threads.
+///
+/// How it works:
+/// - parentId → points to another Comment (optional)
+/// - parent   → the comment being replied to
+/// - replies  → list of comments replying to this comment
+///
+/// Rules:
+/// - parentId = null → top-level comment
+/// - parentId != null → reply to another comment
+///
+/// Important:
+/// Self relations require a named relation (e.g. "CommentReplies")
+/// so Prisma can distinguish between the two sides of the relation.

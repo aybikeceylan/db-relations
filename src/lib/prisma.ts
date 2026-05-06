@@ -1,4 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../generated/prisma/client";
+import pg from "pg";
 
 /**
  * Prisma client instance
@@ -10,4 +12,8 @@ import { PrismaClient } from "@prisma/client";
  * It is also used to execute bulk operations
  * It is also used to execute bulk operations
  */
-export const prisma = new PrismaClient();
+
+const pool = new pg.Pool({ connectionString: process.env["DATABASE_URL"] });
+const adapter = new PrismaPg(pool);
+
+export const prisma = new PrismaClient({ adapter });
