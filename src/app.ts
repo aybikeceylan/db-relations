@@ -2,7 +2,7 @@ import express from "express";
 import { requestLoggerMiddleware } from "./middlewares/request-logger.middleware";
 import { notFoundMiddleware } from "./middlewares/not-found.middleware";
 import { errorMiddleware } from "./middlewares/error.middleware";
-import { userRouter } from "./routes/user.route";
+import router from "./routes";
 
 /**
  * Express application
@@ -63,7 +63,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.use("/api/users", userRouter);
+app.use("/api", router);
 
 /**
  * Not found middleware

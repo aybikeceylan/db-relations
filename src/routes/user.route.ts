@@ -1,8 +1,14 @@
 import { Router } from "express";
 import {
   createUserController,
+  deleteUserAvatarController,
+  deleteUserController,
   getUserByIdController,
   getUsersController,
+  hardDeleteUserController,
+  restoreUserController,
+  softDeletedUsersController,
+  updateUserAvatarController,
   updateUserController,
 } from "../controllers/user.controller";
 import { asyncHandler } from "../common/helpers/async-handler";
@@ -30,3 +36,16 @@ userRouter.put(
   validateBody(updateUserSchema),
   asyncHandler(updateUserController),
 );
+
+userRouter.delete("/:id/permanent", asyncHandler(hardDeleteUserController));
+userRouter.delete("/:id", asyncHandler(deleteUserController));
+userRouter.delete("/:id/avatar", asyncHandler(deleteUserAvatarController));
+userRouter.put(
+  "/:id/avatar",
+  upload.single("avatar"),
+  validateAvatarMiddleware,
+  asyncHandler(updateUserAvatarController),
+);
+
+userRouter.put("/:id/restore", asyncHandler(restoreUserController));
+userRouter.get("/soft-deleted", asyncHandler(softDeletedUsersController));

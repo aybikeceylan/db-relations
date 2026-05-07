@@ -22,6 +22,7 @@ export function errorMiddleware(
      * These are intentionally defined by the developer
      */
     return res.status(err.statusCode).json({
+      status: err.statusCode,
       success: false,
       message: err.message,
     });

@@ -25,6 +25,9 @@ model User {
   /// Optional avatar image URL
   avatarUrl String?
 
+  /// Cloudinary public_id for deletes (no URL parsing)
+  avatarPublicId String?
+
   /// Global system role (not group-specific)
   systemRole SystemRole @default(USER)
 
@@ -42,6 +45,9 @@ model User {
 
   /// Automatically updated on record change
   updatedAt DateTime @updatedAt
+
+  /// Record deletion timestamp
+  deletedAt DateTime?
 }
 
 model StudyGroup {
@@ -68,6 +74,9 @@ model StudyGroup {
 
   /// Automatically updated on change
   updatedAt DateTime @updatedAt
+
+  /// Record deletion timestamp
+  deletedAt DateTime?
 }
 
 model GroupMember {
@@ -127,6 +136,9 @@ model Task {
   updatedAt DateTime @updatedAt
 
   @@index([studyGroupId])
+
+  /// Record deletion timestamp
+  deletedAt DateTime?
 }
 
 model TaskAssignee {
@@ -186,6 +198,9 @@ model Comment {
   @@index([taskId])
   @@index([userId])
   @@index([parentId])
+
+  /// Record deletion timestamp
+  deletedAt DateTime?
 }
 
 /// Notes : cannot define another model in current model
