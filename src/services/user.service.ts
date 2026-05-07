@@ -4,6 +4,8 @@ import {
   type UploadImageResult,
 } from "../common/helpers/upload-image";
 import { prisma } from "../lib/prisma";
+import { assertNoDuplicate } from "../utils/assertNoDuplicate";
+import { findOneItem } from "../utils/findOneItem";
 import { removeFile } from "./file.service";
 
 export type CreateUserParams = {
@@ -23,14 +25,11 @@ export type UpdateUserParams = {
 };
 
 export async function createUser(input: CreateUserParams) {
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email: input.email,
-    },
-  });
-  if (existingUser) {
-    throw new AppError("User with this email already exists", 409);
-  }
+  await assertNoDuplicate(
+    prisma.user,
+    { email: input.email },
+    "User with this email already exists",
+  );
 
   const user = await prisma.user.create({
     data: input,
@@ -52,26 +51,11 @@ export async function getUserById(id: number) {
   if (Number.isNaN(id)) {
     throw new AppError("Invalid user ID", 400);
   }
-  const user = await prisma.user.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
-  return user;
+  return findOneItem(prisma.user, id, "User not found");
 }
 
 export async function updateUser(id: number, input: UpdateUserParams) {
-  const user = await prisma.user.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+  const user = await findOneItem(prisma.user, id, "User not found");
 
   if (input.avatarUrl !== undefined) {
     const oldRef = user.avatarPublicId ?? user.avatarUrl;
@@ -93,14 +77,7 @@ export async function updateUser(id: number, input: UpdateUserParams) {
 }
 
 export async function updateUserAvatar(id: number, file: Express.Multer.File) {
-  const user = await prisma.user.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+  const user = await findOneItem(prisma.user, id, "User not found");
   let upload: UploadImageResult;
   try {
     upload = await uploadImage(file.buffer);
@@ -126,18 +103,11 @@ export async function updateUserAvatar(id: number, file: Express.Multer.File) {
       avatarPublicId: upload.publicId,
     },
   });
-  return prisma.user.findUnique({ where: { id } });
+  return findOneItem(prisma.user, id, "User not found");
 }
 
 export async function softDeleteUser(id: number) {
-  const user = await prisma.user.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+  await findOneItem(prisma.user, id, "User not found");
 
   return prisma.user.update({
     where: {
@@ -149,14 +119,7 @@ export async function softDeleteUser(id: number) {
   });
 }
 export async function hardDeleteUser(id: number) {
-  const user = await prisma.user.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+  const user = await findOneItem(prisma.user, id, "User not found");
   const avatarRef = user.avatarPublicId ?? user.avatarUrl;
   if (avatarRef) {
     await removeFile(avatarRef);
@@ -170,14 +133,7 @@ export async function hardDeleteUser(id: number) {
 }
 
 export async function deleteUserAvatar(id: number) {
-  const user = await prisma.user.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+  const user = await findOneItem(prisma.user, id, "User not found");
   const avatarRef = user.avatarPublicId ?? user.avatarUrl;
   if (!avatarRef) {
     throw new AppError("User does not have an avatar", 400);

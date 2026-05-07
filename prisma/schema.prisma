@@ -63,6 +63,9 @@ model StudyGroup {
   /// Optional avatar image
   avatarUrl String?
 
+  /// Cloudinary public_id for deletes (no URL parsing)
+  avatarPublicId String?
+
   /// Relation to GroupMember (users in this group) this is junction table
   members GroupMember[]
 
