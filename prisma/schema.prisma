@@ -78,8 +78,6 @@ model StudyGroup {
   /// Automatically updated on change
   updatedAt DateTime @updatedAt
 
-  /// Record deletion timestamp
-  deletedAt DateTime?
 }
 
 model GroupMember {
@@ -140,8 +138,7 @@ model Task {
 
   @@index([studyGroupId])
 
-  /// Record deletion timestamp
-  deletedAt DateTime?
+
 }
 
 model TaskAssignee {
@@ -202,8 +199,7 @@ model Comment {
   @@index([userId])
   @@index([parentId])
 
-  /// Record deletion timestamp
-  deletedAt DateTime?
+
 }
 
 /// Notes : cannot define another model in current model
